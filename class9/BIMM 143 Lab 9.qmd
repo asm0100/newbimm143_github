@@ -1,0 +1,219 @@
+---
+title: "BIMM 143 Lab 9"
+author: "Ashley Martinez (PID: A17891957)"
+format: pdf
+toc: true
+---
+
+## PDB Statistics
+
+The main database for structural biology is called the PDB. Let's have a look at what it contains: 
+Let's first load the PDB CSV file, while also using 'readr'.
+
+```{r pdbstats,message=FALSE}
+library(readr)
+stats<-read.csv("PDB.CSV")
+stats
+```
+
+>Q1: What percentage of structures in the PDB are solved by X-Ray and Electron Microscopy.
+
+**Answer**: 81.48%
+
+This code will help us convert character values to numeric.
+```{r}
+stats$Total <- as.numeric(gsub(",", "", stats$Total))
+stats$X.ray <- as.numeric(gsub(",", "", stats$X.ray))
+```
+
+Now we can treat the values as numbers to calculate the totals for the wanted columns.
+```{r}
+n.total<-sum(stats$Total)
+n.total
+n.xray<-sum(stats$X.ray)
+n.xray
+```
+
+```{r}
+percent.xray<-n.xray/ n.total*100
+percent.xray
+```
+
+There are 'r round(percent.xray,2)' percent X-ray structures in the PDB.
+
+>Q2: What proportion of structures in the PDB are protein?
+
+**Answer**: 86.05%
+
+```{r}
+round(stats$Total[1]/n.total*100,2)
+```
+
+
+>Q3: Type HIV in the PDB website search box on the home page and determine how many HIV-1 protease structures are in the current PDB?
+
+**Answer**: 2,406
+
+```{r}
+library(bio3d)
+hiv<-read.pdb("1hsg")
+hiv
+```
+
+```{r}
+pdb <- read.pdb("1hsg")
+pdb
+```
+
+
+
+Let's first use the Mol* viewer to explore this structure.
+
+![My first view of HIV=Pr](1HSG.png)
+
+>Q6: Now let's view the molecule with labeled Asp 25 and water.
+
+Ligands can enter the binding site when the active site flaps are open allowing the ligand to enter and bind.
+
+![View of labeled HSG molecule](1HSG_labeled.png)
+
+>Q4: Water molecules normally have 3 atoms. Why do we see just one atom per water molecule in this structure?
+
+**Answer**: This is because proteins are analyzed with X-ray crystallography, which does not show hydrogen atoms so the water molecules appear as a single oxygen.
+
+>Q5: There is a critical “conserved” water molecule in the binding site. Can you identify this water molecule? What residue number does this water molecule have.
+
+**Answer**: HOH 308
+
+## Bio3D in R
+
+```{r}
+library(bio3d)
+pdb <- read.pdb("1hsg")
+pdb
+```
+
+
+>Q7: How many amino acid residues are there in this pdb object? 
+
+**Answer**: 198
+
+>Q8: Name one of the two non-protein residues? 
+
+**Answer**:H2O
+
+>Q9: How many protein chains are in this structure?
+
+**Answer**: 2 chains
+
+```{r}
+attributes(pdb)
+head(pdb$atom)
+```
+
+
+```{r}
+chainA_seq<-pdbseq(trim.pdb(hiv,chain="A"))
+```
+
+I can interactively view these PDB objects in R with the new **bio3dview** package. This is not yet on CRAN.
+
+To install this I can set up **pak** package and use it to install **bio3dview** from GitHub
+
+```{r}
+# install.packages("pak")
+pak::pak("bioboot/bio3dview")
+```
+
+This chunk of code will render a spinning image however it can not be printed onto a pdf.
+
+library(bio3dview)
+library(NGLVieweR)
+
+view.pdb(pdb) |>
+  setSpin()
+
+
+sele <- atom.select(pdb, resno=25)
+view.pdb(pdb, cols=c("navy","teal"), 
+         highlight = sele,
+         highlight.style = "spacefill") 
+
+
+## Predict protein flexibility
+
+We can run a bioinformatics calculation to predict protein dynamics - i.e. functional motions.
+
+We will use the 'nma()' function:
+
+```{r}
+adk<-read.pdb("6s36")
+adk
+```
+
+```{r}
+m<-nma(adk)
+plot(m)
+```
+
+Generate a "trajectory" of predicted motion
+```{r}
+mktrj(m, file="adk_m7.pdb")
+```
+
+
+## Comparative Structure Analysis
+
+>Q10. Which of the packages above is found only on BioConductor and not CRAN? 
+
+**Answer**: msa
+
+>Q11. Which of the above packages is not found on BioConductor or CRAN?: 
+
+**Answer**: bio3dview
+
+>Q12. True or False? Functions from the pak package can be used to install packages from GitHub and BitBucket? 
+
+**Answer**: True
+
+```{r}
+library(bio3d)
+aa <- get.seq("1ake_A")
+aa
+```
+
+>Q13. How many amino acids are in this sequence, i.e. how long is this sequence?
+
+**Answer**: 214 amino acids
+
+```{r}
+b <- blast.pdb(aa)
+hits <- plot(b)
+head(hits$pdb.id)
+```
+
+
+```{r}
+hits <- NULL
+hits$pdb.id <- c('1AKE_A','6S36_A','6RZE_A','3HPR_A','1E4V_A','5EJE_A','1E4Y_A','3X2S_A','6HAP_A','6HAM_A','4K46_A','3GMT_A','4PZL_A')
+```
+
+```{r}
+files <- get.pdb(hits$pdb.id, path="pdbs", split=TRUE, gzip=TRUE)
+```
+
+This is the code to make a sequence alignment plot from the PDB files. The code cannot be rendered to pdf because the figure margins are too large but it is shown below.
+
+pdbs <- pdbaln(files, fit = TRUE, exefile="msa")
+ids <- basename.pdb(pdbs$id)
+plot(pdbs, labels=ids)
+
+
+
+
+
+
+
+
+
+
