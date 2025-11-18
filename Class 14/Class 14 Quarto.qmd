@@ -1,0 +1,215 @@
+---
+title: "Class 14: RNASeq Mini Project"
+author: "Ashley PID:A17891957"
+format: pdf
+toc: true
+---
+
+## Background
+
+Here we work through a complete RNASeq analysis project. The input data comes from a knock-down experiment of a HOX gene
+
+## Data Import
+
+Reading the 'counts' and 'metadata' CSV files
+
+```{r}
+counts<-read.csv("GSE37704_featurecounts.csv",row.names=1)
+metadata<-read.csv("GSE37704_metadata.csv")
+```
+
+```{r}
+head(counts)
+```
+```{r}
+metadata
+```
+
+Some book-keeping is required as there looks to be a mis-match between metadata and counts columns
+
+```{r}
+ncol(counts)
+```
+
+```{r}
+nrow(metadata)
+```
+
+Looks like we need to get rid of the first "length" column of our 'counts' object.
+
+```{r}
+cleancounts<-counts[,-1]
+```
+
+```{r}
+colnames(cleancounts)
+```
+
+```{r}
+metadata$id
+```
+
+```{r}
+all(colnames(cleancounts)==metadata$id)
+```
+
+## Remove zero count genes
+
+There are lots of genes with zero counts. We can remove these from futher analysis.
+```{r}
+head(cleancounts)
+```
+
+```{r}
+to.keep.inds<-rowSums(cleancounts) >0
+nonzero_counts<-cleancounts[to.keep.inds,]
+```
+
+## DESeq analysis
+Load the package
+
+```{r,message=FALSE}
+library(DESeq2)
+```
+
+Setup DESeq
+
+```{r}
+dds<-DESeqDataSetFromMatrix(countData = nonzero_counts,
+                            colData=metadata,
+                            design=~condition)
+```
+
+run DESeq
+```{r}
+dds<-DESeq(dds)
+```
+
+get results 
+```{r}
+res<-results(dds)
+head(res)
+```
+
+## Data Visualization
+
+Volcano plot
+```{r}
+library(ggplot2)
+
+ggplot(res)+
+  aes(log2FoldChange,-log(padj))+
+  geom_point()
+```
+
+Add threshold lines for fold-change and P-value and color our subset of genes that make these threshold cut-offs in the plot
+
+
+
+## Add Annotation
+
+Add gene symbols and entrez IDs
+
+```{r}
+library(AnnotationDbi)
+library(org.Hs.eg.db)
+```
+
+```{r}
+res$symbol<-mapIds(x=org.Hs.eg.db,
+       keys=row.names(res),
+       keytype = "ENSEMBL",
+       column="SYMBOL")
+res$entrez<-mapIds(x=org.Hs.eg.db,
+       keys=row.names(res),
+       keytype = "ENSEMBL",
+       column="ENTREZID")
+
+```
+
+## Pathway Analysis
+
+### KEGG Pathway
+Run gage analysis with KEGG
+
+```{r}
+library(gage)
+library(gageData)
+library(pathview)
+```
+
+We need a named vector of fold-change values as input for gage
+
+```{r}
+foldchanges = res$log2FoldChange
+names(foldchanges) = res$entrez
+head(foldchanges)
+```
+
+```{r}
+library(gage)
+library(gageData)
+
+data(kegg.sets.hs)
+data(sigmet.idx.hs)
+
+kegg.sets.hs = kegg.sets.hs[sigmet.idx.hs]
+
+head(kegg.sets.hs, 3)
+```
+
+```{r}
+pathview(pathway.id="hsa04110",gene.data=foldchanges)
+```
+
+![](hsa04110.pathview.png)
+
+```{r}
+pathview(pathway.id="hsa03030",gene.data=foldchanges)
+```
+![](hsa03030.pathview.png)
+
+### Go terms
+
+Same analysis but using GO genesets rather than KEGG
+```{r}
+data(go.sets.hs)
+data(go.subs.hs)
+
+# Focus on Biological Process subset of GO
+gobpsets = go.sets.hs[go.subs.hs$BP]
+
+gobpres = gage(foldchanges, gsets=gobpsets, same.dir=TRUE)
+
+lapply(gobpres, head) 
+```
+
+### Reactome
+
+Lots of folks like the reactome web interface. You can also run this as an R function but lets look at the website first <https://reactome.org/>
+
+The website wants a text file with one gene symbol per line of the genes you want to map to pathways.
+
+```{r}
+sig_genes <- res[res$padj <= 0.05 & !is.na(res$padj), "symbol"]
+head(sig_genes)
+#res$symbol
+```
+
+And write out to a file:
+
+```{r}
+write.table(sig_genes, file="significant_genes.txt", row.names=FALSE, col.names=FALSE, quote=FALSE)
+```
+
+## Save Our Results
+
+```{r}
+write.csv(res,file="myresults.csv")
+```
+
+Q: What pathway has the most significant “Entities p-value”? Do the most significant pathways listed match your previous KEGG results? What factors could cause differences between the two methods?
+
+A: Autophagy has the most significant. It is slightly different from the KEGG results most likely because they use different gene information and mappings.
+
+
