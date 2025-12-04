@@ -1,0 +1,44 @@
+---
+title: "Sequencing Data in the Cloud"
+author: "Ashley Martinez PID:A17891957"
+format: pdf
+---
+
+**Section 1. Proportion of G/G**
+
+Download a CSV file from ENSEMBLE.< https://uswest.ensembl.org/Homo_sapiens/Variation/Sample?db=
+core;r=17:39815097-39975098;v=1s8067378;vdb=variation;vf=88214830#373531_tablePanel >
+
+```{r}
+mxl<- read.csv("373531-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+head(mxl)
+```
+
+```{r}
+table(mxl$Genotype..forward.strand.)
+```
+
+```{r}
+table(mxl$Genotype..forward.strand.)/nrow(mxl)*100
+```
+
+Now we will look at another population GBR.
+
+```{r}
+gbr<-read.csv("373522-SampleGenotypes-Homo_sapiens_Variation_Sample_rs8067378.csv")
+```
+
+Now find proportion of G|G
+
+```{r}
+round(table(gbr$Genotype..forward.strand.)/nrow(gbr)*100,2)
+```
+
+This varient associated with childhood asthma is more frequent in GBR population.
+
+
+
+
+
+
+

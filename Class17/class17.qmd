@@ -1,0 +1,40 @@
+---
+title: "BIMM 143 Class 17 HW"
+author: "Ashley Martinez PID:A17891957"
+format: pdf
+---
+
+Section 4: Population Scale Analysis [HOMEWORK]
+One sample is obviously not enough to know what is happening in a population. You are
+interested in assessing genetic differences on a population scale. So, you processed about
+~230 samples and did the normalization on a genome level. Now, you want to find whether
+there is any association of the 4 asthma-associated SNPs (rs8067378…) on ORMDL3
+expression.
+
+How many samples do we have?
+
+```{r}
+expr<- read.table("rs8067378_ENSG00000172057.6.txt")
+head(expr)
+```
+
+```{r}
+nrow(expr)
+```
+
+```{r}
+table(expr$geno)
+```
+
+```{r}
+library(ggplot2)
+```
+
+Now let's make a boxplot.
+
+```{r}
+ggplot(expr)+aes(geno, exp,fill=geno)+geom_boxplot(notch=TRUE)
+```
+
+
+
