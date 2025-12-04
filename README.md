@@ -1,7 +1,7 @@
 # BIMM143
 Classwork for [BIMM 143 at UC San Diego](https://asm0100.github.io/newbimm143_github/) during Fall 2025.
 
-- Class 04 [R Fundamentals](class04/RGraph Pdf.pdf)
+- Class 04 [R Fundamentals](file:///Users/ashleymartinez/bimm143/class04/rgraph.html)
 - Class 05 [Data Viz with GGPlot](class5/class5.md)
 - Class 06 [R Functions](Class6/Class6.md)
 - Class 07 [Machine Learning 1](Class07/Class7.md)
